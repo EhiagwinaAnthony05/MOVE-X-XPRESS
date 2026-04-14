@@ -1,0 +1,21 @@
+.header{
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding-left: 40px;
+  gap: 0;
+}
+
+.move{
+    padding-left: 0;
+}
+
+.xpress{
+    padding-left: 10px;
+}
+
+span{
+    background-color: var(--color-primary);
+    color: black;
+}

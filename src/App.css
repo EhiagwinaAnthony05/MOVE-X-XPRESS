@@ -1,0 +1,352 @@
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ============================================
+   COMPONENT STYLES
+   ============================================ */
+
+.hero-section{
+  display: flex;
+  align-items: left;
+  min-height: 522px;
+  position: relative;
+  overflow: hidden;
+  animation: fadeIn 0.8s ease-out 0.2s both;
+}
+
+.hero-content{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 120px 55px 15px;
+  color: white;
+  width: 35%;
+  animation: slideInRight 0.7s ease-out 0.4s both;
+}
+
+p{color: var(--color-primary);}
+
+
+
+.services-section{
+  width: 100%;
+  padding: 80px 40px;
+  background-color: #f8f9fa;
+  animation: fadeInUp 0.8s ease-out 0.6s both;
+}
+
+
+.service{
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 24px;
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+}
+
+.service-box{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 1;
+  min-width: 240px;
+  max-width: 320px;
+  padding: 32px 24px;
+  border: 2px solid var(--color-primary);
+  border-radius: 8px;
+  background-color: white;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  animation: fadeInUp 0.6s ease-out both;
+}
+
+.service-box:nth-child(1) {
+  animation-delay: 0.7s;
+}
+
+.service-box:nth-child(2) {
+  animation-delay: 0.8s;
+}
+
+.service-box:nth-child(3) {
+  animation-delay: 0.9s;
+}
+
+.service-box:hover{
+  border-color: var(--color-primary);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+  transform: translateY(-4px);
+}
+
+.service-icon{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 16px;
+  color: var(--color-primary);
+}
+
+.service-content{
+  text-align: center;
+}
+
+.service-box h3{
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  line-height: 1.4;
+}
+
+.service-box p{
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+}
+
+
+/* ============================================
+   RESPONSIVE DESIGN - Mobile First Approach
+   ============================================ */
+
+/* Mobile Devices (320px - 480px) */
+@media (max-width: 480px) {
+  .hero-section {
+    min-height: 400px;
+    background-size: cover !important;
+  }
+
+  .hero-content {
+    width: 100%;
+    padding: 40px 16px;
+    align-items: center;
+    text-align: center;
+  }
+
+  .hero-content h1 {
+    font-size: 24px;
+    margin: 0 0 12px 0;
+  }
+
+  .hero-content p {
+    font-size: 14px;
+    margin: 0 0 16px 0;
+  }
+
+  .search-container {
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    gap: 8px;
+  }
+
+  .search-bar {
+    max-width: 100%;
+    border-radius: 5px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .search-btn {
+    width: 100%;
+    border-radius: 5px;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .services-section {
+    padding: 40px 16px;
+  }
+
+  .service {
+    gap: 16px;
+    padding: 0;
+  }
+
+  .service-box {
+    min-width: 100%;
+    max-width: 100%;
+    padding: 20px 16px;
+  }
+
+  .service-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 12px;
+  }
+
+  .service-box h3 {
+    font-size: 16px;
+    margin: 0 0 8px 0;
+  }
+
+  .service-box p {
+    font-size: 12px;
+  }
+}
+
+/* Tablet Devices (481px - 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+  .hero-section {
+    min-height: 450px;
+  }
+
+  .hero-content {
+    width: 100%;
+    padding: 60px 40px;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .hero-content h1 {
+    font-size: 28px;
+    margin: 0 0 12px 0;
+  }
+
+  .hero-content p {
+    font-size: 14px;
+    margin: 0 0 20px 0;
+  }
+
+  .search-container {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .search-bar {
+    max-width: 100%;
+  }
+
+  .search-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  .services-section {
+    padding: 60px 24px;
+  }
+
+  .service {
+    gap: 20px;
+  }
+
+  .service-box {
+    min-width: 180px;
+    max-width: 250px;
+    padding: 24px 16px;
+  }
+
+  .service-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 14px;
+  }
+
+  .service-box h3 {
+    font-size: 16px;
+  }
+
+  .service-box p {
+    font-size: 13px;
+  }
+}
+
+/* Medium Screens (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .hero-content {
+    width: 50%;
+    padding: 100px 40px;
+  }
+
+  .hero-content h1 {
+    font-size: 32px;
+  }
+
+  .search-container {
+    max-width: 450px;
+  }
+
+  .services-section {
+    padding: 80px 30px;
+  }
+
+  .service-box {
+    min-width: 220px;
+    max-width: 280px;
+  }
+}
+
+/* Large Screens (1025px and above) */
+@media (min-width: 1025px) {
+  .hero-section {
+    min-height: 522px;
+  }
+
+  .hero-content {
+    width: 35%;
+    padding: 120px 55px 15px;
+  }
+
+  .search-container {
+    max-width: 500px;
+  }
+
+  .services-section {
+    padding: 80px 40px;
+  }
+
+  .service-box {
+    min-width: 240px;
+    max-width: 320px;
+  }
+}
