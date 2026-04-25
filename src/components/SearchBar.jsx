@@ -35,7 +35,7 @@ function SearchBar({
         : await defaultSearch(normalizedId)
 
       if (result === false) {
-        setError('Use a valid tracking ID like MXX001 and try again.')
+        setError('Use a valid tracking ID like MX00001 and try again.')
       }
     } catch (submitError) {
       console.error(submitError)

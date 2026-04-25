@@ -1,10 +1,14 @@
-import { Routes, Route, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import './App.css'
 import Hero from './assets/hero.jpeg'
 import SearchBar from './components/SearchBar'
 import WhatsAppButton from './components/WhatsAppButton'
 import Header from './components/Header'
+import Footer from './components/Footer'
 import TrackingPage from './TrackingPage'
+import RiderPage from './RiderPage'
+import AdminPage from './Admin/AdminPage'
+import AdminRidersPage from './Admin/AdminRidersPage'
 import { ClockCheck, SendHorizontal, BriefcaseBusiness } from 'lucide-react'
 import { isTrackingIdFormatValid, normalizeTrackingId } from './data/trackingData'
 
@@ -70,10 +74,16 @@ function App() {
               </div>
             </section>
             <WhatsAppButton phoneNumber='2349112414541' />
+            <Footer />
           </div>
         }
       />
       <Route path='/tracking/:id' element={<TrackingPage />} />
+      <Route path='/rider' element={<RiderPage />} />
+      <Route path='/rider/:id' element={<Navigate to='/rider' replace />} />
+      <Route path='/admin' element={<AdminPage />} />
+      <Route path='/admin/customers' element={<AdminPage />} />
+      <Route path='/admin/riders' element={<AdminRidersPage />} />
     </Routes>
   )
 }

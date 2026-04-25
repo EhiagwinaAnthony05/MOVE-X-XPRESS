@@ -3,17 +3,83 @@ import Header from './components/Header'
 import SearchBar from './components/SearchBar'
 import WhatsAppButton from './components/WhatsAppButton'
 import Map from './components/Map'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Check } from 'lucide-react'
-import { isTrackingIdFormatValid, normalizeTrackingId, shipmentData } from './data/trackingData'
+import { isTrackingIdFormatValid, normalizeTrackingId } from './data/trackingData'
 
 function TrackingPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
 
-  // The route param decides which shipment summary and timeline get rendered.
   const trackingId = normalizeTrackingId(id)
-  const shipment = shipmentData[trackingId]
+  const [shipment, setShipment] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [retryKey, setRetryKey] = useState(0)
+
+  useEffect(() => {
+    let ignore = false
+    let intervalId = null
+
+    async function loadShipment({ silent = false } = {}) {
+      if (!isTrackingIdFormatValid(trackingId)) {
+        setShipment(null)
+        setIsLoading(false)
+        setErrorMessage('')
+        return
+      }
+
+      try {
+        if (!ignore && !silent) {
+          setIsLoading(true)
+        }
+
+        if (!ignore) {
+          setErrorMessage('')
+        }
+
+        const response = await fetch(`${apiBaseUrl}/api/orders/${trackingId}`)
+
+        if (!response.ok) {
+          if (!ignore) {
+            setShipment(null)
+            setErrorMessage(response.status >= 500 ? 'Unable to load tracking details right now. Please try again.' : '')
+          }
+          return
+        }
+
+        const data = await response.json()
+
+        if (!ignore) {
+          setShipment(data)
+        }
+      } catch {
+        if (!ignore) {
+          setShipment(null)
+          setErrorMessage('Network error while loading tracking details. Check your connection and try again.')
+        }
+      } finally {
+        if (!ignore && !silent) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    loadShipment()
+
+    intervalId = setInterval(() => {
+      loadShipment({ silent: true })
+    }, 10000)
+
+    return () => {
+      ignore = true
+      if (intervalId) {
+        clearInterval(intervalId)
+      }
+    }
+  }, [apiBaseUrl, retryKey, trackingId])
 
   const handleSearch = async (value) => {
     const nextId = normalizeTrackingId(value)
@@ -26,24 +92,51 @@ function TrackingPage() {
     return true
   }
 
+  function handleGoHome() {
+    navigate('/')
+  }
+
   return (
     <div className='tracking-page'>
       <Header />
-      <SearchBar placeholder='Search another tracking ID...' onSubmit={handleSearch} />
+      <div className='tracking-top-actions'>
+        <SearchBar placeholder='Search another tracking ID' onSubmit={handleSearch} />
+        <button type='button' className='go-home-button' onClick={handleGoHome}>
+          Go Back Home
+        </button>
+      </div>
       <Map
         title='Live Tracking'
-        locationLabel={shipment?.mapLocation ?? 'Tracking details update once a valid shipment is selected.'}
+        locationLabel={shipment?.rider?.currentLocation ?? 'Tracking details update once a valid shipment is selected.'}
+        latitude={shipment?.rider?.location?.lat}
+        longitude={shipment?.rider?.location?.lng}
       />
       <WhatsAppButton />
       <div className='status-container'>
-        {shipment ? (
+        {isLoading ? (
+          <div className='tracking-empty'>
+            <h2>Loading tracking details...</h2>
+            <p>Please wait.</p>
+          </div>
+        ) : errorMessage ? (
+          <div className='tracking-empty'>
+            <h2>Unable to load tracking details</h2>
+            <p>{errorMessage}</p>
+            <button type='button' className='retry-button' onClick={() => setRetryKey((value) => value + 1)}>
+              Retry
+            </button>
+          </div>
+        ) : shipment ? (
           <>
             <div className='tracking-info'>
               <h2>Tracking ID: {trackingId}</h2>
-              <p>Rider&apos;s Name: {shipment.riderName}</p>
-              <p>Estimated Delivery: {shipment.estimatedDelivery}</p>
-              <p>Current Location: {shipment.currentLocation}</p>
-              <p>Phone Number: {shipment.phoneNumber}</p>
+              <p>Sender: {shipment.sender?.name || '-'}</p>
+              <p>Receiver: {shipment.receiver?.name || '-'}</p>
+              <p>Package: {shipment.package?.description || '-'}</p>
+              <p>Delivery Status: {shipment.delivery?.status || '-'}</p>
+              <p>Rider&apos;s Name: {shipment.rider?.name || '-'}</p>
+              <p>Rider&apos;s Phone: {shipment.rider?.phone || '-'}</p>
+              <p>Map-based ETA: {shipment.rider?.estimatedDelivery || 'Waiting for live coordinates...'}</p>
             </div>
             <div className='tracking-status'>
               <h3>Shipment Progress</h3>
@@ -59,9 +152,10 @@ function TrackingPage() {
                     <div className='timeline-content'>
                       <div className='timeline-header'>
                         <h4>{step.status}</h4>
-                        <span className='timeline-date'>{step.date} {step.time}</span>
+                        {step.completed && step.date && step.time ? (
+                          <span className='timeline-date'>{step.date} {step.time}</span>
+                        ) : null}
                       </div>
-                      <p className='timeline-location'>{step.location}</p>
                       <p className='timeline-description'>{step.description}</p>
                     </div>
                   </div>

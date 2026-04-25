@@ -1,0 +1,20 @@
+const express = require('express')
+const validateRequest = require('../middleware/validateRequest')
+const requireAdminAuth = require('../middleware/requireAdminAuth')
+const requireRiderAuth = require('../middleware/requireRiderAuth')
+const { createOrderSchema, updateOrderSchema, riderLocationSchema } = require('../validators/orderSchemas')
+const { getAllOrders, getOrderSummary, getOrderById, createOrder, updateOrderStatus, updateRiderLocation, deleteOrder, assignOrder, unassignOrder } = require('../controllers/orderControllers')
+
+const router = express.Router()
+
+router.get('/', getAllOrders)
+router.get('/summary', getOrderSummary)
+router.get('/:id', getOrderById)
+router.post('/', requireAdminAuth, validateRequest(createOrderSchema), createOrder)
+router.put('/:id', requireAdminAuth, validateRequest(updateOrderSchema), updateOrderStatus)
+router.patch('/:id/rider-location', requireRiderAuth, validateRequest(riderLocationSchema), updateRiderLocation)
+router.patch('/:id/assign', requireAdminAuth, assignOrder)
+router.patch('/:id/unassign', requireAdminAuth, unassignOrder)
+router.delete('/:id', requireAdminAuth, deleteOrder)
+
+module.exports = router
