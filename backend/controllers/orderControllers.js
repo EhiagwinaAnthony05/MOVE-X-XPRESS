@@ -153,8 +153,27 @@ function getRider(orderObj, steps) {
       name: orderObj.rider?.deliveredSnapshot?.name || '',
       phone: orderObj.rider?.deliveredSnapshot?.phone || '',
       currentLocation: orderObj.rider?.deliveredSnapshot?.currentLocation || '',
+      location: {
+        lat: orderObj.rider?.deliveredSnapshot?.location?.lat ?? null,
+        lng: orderObj.rider?.deliveredSnapshot?.location?.lng ?? null,
+        updatedAt: orderObj.rider?.deliveredSnapshot?.location?.updatedAt ?? null,
+      },
       deliveredAt: orderObj.rider?.deliveredSnapshot?.deliveredAt ?? null,
     },
+  }
+}
+
+function createDeliveredSnapshot(orderObj, deliveredAt) {
+  return {
+    name: orderObj?.rider?.name || '',
+    phone: orderObj?.rider?.phone || '',
+    currentLocation: orderObj?.rider?.currentLocation || '',
+    location: {
+      lat: orderObj?.rider?.location?.lat ?? null,
+      lng: orderObj?.rider?.location?.lng ?? null,
+      updatedAt: orderObj?.rider?.location?.updatedAt ?? null,
+    },
+    deliveredAt,
   }
 }
 
@@ -418,12 +437,59 @@ function toOrderShape(order) {
     package: packageDetails,
     delivery: {
       status: deliveryStatus,
+      deliveredMarkedAt: orderObj.delivery?.deliveredMarkedAt || null,
+      deliveredMarkedBy: {
+        id: orderObj.delivery?.deliveredMarkedBy?.id || '',
+        email: orderObj.delivery?.deliveredMarkedBy?.email || '',
+      },
     },
     rider,
     createdAt: orderObj.createdAt,
     updatedAt: orderObj.updatedAt,
     deliveredAt: orderObj.deliveredAt || null,
     steps,
+  }
+}
+
+function toPublicTrackingOrderShape(order) {
+  const orderShape = toOrderShape(order)
+  const isDelivered = normalizeDeliveryStatus(orderShape.delivery?.status) === 'delivered'
+
+  return {
+    trackingId: orderShape.trackingId,
+    sender: {
+      name: orderShape.sender?.name || '-',
+    },
+    receiver: {
+      name: orderShape.receiver?.name || '-',
+    },
+    package: {
+      description: orderShape.package?.description || '-',
+    },
+    delivery: {
+      status: orderShape.delivery?.status || 'pending',
+    },
+    rider: {
+      name: isDelivered ? '' : orderShape.rider?.name || 'Unassigned',
+      phone: isDelivered ? '' : orderShape.rider?.phone || '',
+      currentLocation: isDelivered ? '' : orderShape.rider?.currentLocation || '',
+      estimatedDelivery: isDelivered ? '' : orderShape.rider?.estimatedDelivery || '',
+      location: {
+        lat: isDelivered ? null : orderShape.rider?.location?.lat ?? null,
+        lng: isDelivered ? null : orderShape.rider?.location?.lng ?? null,
+        updatedAt: isDelivered ? null : orderShape.rider?.location?.updatedAt ?? null,
+      },
+    },
+    createdAt: orderShape.createdAt,
+    updatedAt: orderShape.updatedAt,
+    deliveredAt: orderShape.deliveredAt,
+    steps: orderShape.steps.map((step) => ({
+      status: step.status,
+      date: step.date,
+      time: step.time,
+      description: step.description,
+      completed: step.completed,
+    })),
   }
 }
 
@@ -566,7 +632,7 @@ async function getOrderSummary(req, res) {
       pendingDeliveries,
       ordersDelivered,
     })
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ message: 'Server error' })
   }
 }
@@ -576,7 +642,7 @@ async function getAllOrders(_req, res) {
     const orders = await Order.find().sort({ createdAt: -1 })
     await Promise.all(orders.map((order) => migrateLegacyOrder(order)))
     res.json(orders.map((order) => toOrderShape(order)))
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ message: 'Server error' })
   }
 }
@@ -592,8 +658,25 @@ async function getOrderById(req, res) {
 
     await migrateLegacyOrder(order)
     res.json(await toTrackingOrderShape(order))
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ message: 'Server error' })
+  }
+}
+
+async function getPublicTrackingOrderById(req, res) {
+  try {
+    const orderId = req.params.id
+    const order = await findOrderByTrackingRef(orderId)
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' })
+    }
+
+    await migrateLegacyOrder(order)
+    const trackingOrder = await toTrackingOrderShape(order)
+    return res.json(toPublicTrackingOrderShape(trackingOrder))
+  } catch (_error) {
+    return res.status(500).json({ message: 'Server error' })
   }
 }
 
@@ -613,6 +696,8 @@ async function createOrder(req, res) {
       return res.status(400).json({ message: 'Order with this trackingId already exists' })
     }
 
+    const deliveredMarkedAt = normalizedStatus === 'delivered' ? new Date() : null
+
     const newOrder = await Order.create({
       id: trackingId,
       trackingId,
@@ -621,6 +706,13 @@ async function createOrder(req, res) {
       package: packageDetails,
       delivery: {
         status: normalizedStatus,
+        deliveredMarkedAt,
+        deliveredMarkedBy: normalizedStatus === 'delivered'
+          ? {
+              id: req.admin?.id || '',
+              email: req.admin?.email || '',
+            }
+          : undefined,
       },
       rider: {
         riderId: riderData.riderId,
@@ -630,16 +722,22 @@ async function createOrder(req, res) {
         estimatedDelivery: riderData.estimatedDelivery,
         location: riderData.location || undefined,
       },
-      deliveredAt: normalizedStatus === 'delivered' ? new Date() : null,
+      deliveredAt: deliveredMarkedAt,
       steps: buildSteps(normalizedStatus, steps, {
         sender,
         receiver,
         rider: riderData,
+        _timelineTimestamp: deliveredMarkedAt || undefined,
       }),
     })
 
+    if (normalizedStatus === 'delivered') {
+      newOrder.set('rider.deliveredSnapshot', createDeliveredSnapshot(newOrder.toObject ? newOrder.toObject() : newOrder, deliveredMarkedAt))
+      await newOrder.save()
+    }
+
     res.status(201).json(toOrderShape(newOrder))
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ message: 'Server error' })
   }
 }
@@ -658,8 +756,18 @@ async function updateOrderStatus(req, res) {
     }
 
     await migrateLegacyOrder(order)
+    const currentStatus = normalizeDeliveryStatus(order.delivery?.status)
+
+    if (currentStatus === 'delivered' && normalizedStatus === 'delivered') {
+      return res.json(toOrderShape(order))
+    }
+
     order.set('delivery.status', normalizedStatus)
-    order.deliveredAt = normalizedStatus === 'delivered' ? new Date() : null
+
+    const isFirstDeliveredTransition = normalizedStatus === 'delivered' && !order.deliveredAt
+    const deliveredMarkedAt = isFirstDeliveredTransition ? new Date() : order.deliveredAt || null
+
+    order.deliveredAt = normalizedStatus === 'delivered' ? deliveredMarkedAt : null
 
     if (riderData?.riderId !== undefined) {
       order.set('rider.riderId', riderData.riderId)
@@ -687,12 +795,20 @@ async function updateOrderStatus(req, res) {
       })
     }
 
-    if (normalizedStatus === 'delivered') {
-      order.set('rider.deliveredSnapshot', {
-        name: order.rider?.name || '',
-        phone: order.rider?.phone || '',
-        currentLocation: order.rider?.currentLocation || '',
-        deliveredAt: new Date(),
+    if (isFirstDeliveredTransition) {
+      order.set('delivery.deliveredMarkedAt', deliveredMarkedAt)
+      order.set('delivery.deliveredMarkedBy', {
+        id: req.admin?.id || '',
+        email: req.admin?.email || '',
+      })
+      order.set('rider.deliveredSnapshot', createDeliveredSnapshot(order.toObject ? order.toObject() : order, deliveredMarkedAt))
+    }
+
+    if (normalizedStatus !== 'delivered') {
+      order.set('delivery.deliveredMarkedAt', null)
+      order.set('delivery.deliveredMarkedBy', {
+        id: '',
+        email: '',
       })
     }
 
@@ -713,7 +829,7 @@ async function updateOrderStatus(req, res) {
     await order.save()
 
     res.json(toOrderShape(order))
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ message: 'Server error' })
   }
 }
@@ -730,6 +846,10 @@ async function updateRiderLocation(req, res) {
     }
 
     await migrateLegacyOrder(order)
+
+    if (normalizeDeliveryStatus(order.delivery?.status) === 'delivered') {
+      return res.status(409).json({ message: 'Location updates are locked for delivered orders.' })
+    }
 
     const locationTimestamp = capturedAt ? new Date(capturedAt) : new Date()
 
@@ -749,7 +869,7 @@ async function updateRiderLocation(req, res) {
     await order.save()
 
     res.json(toOrderShape(order))
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ message: 'Server error' })
   }
 }
@@ -766,7 +886,7 @@ async function deleteOrder(req, res) {
     await Order.deleteOne({ _id: order._id })
 
     res.json({ message: `Order ${orderId} deleted successfully.` })
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ message: 'Server error' })
   }
 }
@@ -832,6 +952,7 @@ module.exports = {
   getAllOrders,
   getOrderSummary,
   getOrderById,
+  getPublicTrackingOrderById,
   createOrder,
   updateOrderStatus,
   updateRiderLocation,

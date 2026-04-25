@@ -1,10 +1,8 @@
 require('dotenv').config()
-
-
-
 const express = require('express')
 const cors = require('cors')
 const orderRoutes = require('./routes/orderRoutes')
+const trackingRoutes = require('./routes/trackingRoutes')
 const riderRoutes = require('./routes/riderRoutes')
 const adminAuthRoutes = require('./routes/adminAuthRoutes')
 const connectDB = require('./config/db')
@@ -19,11 +17,16 @@ app.get('/', (_req, res) => {
 })
 
 app.use('/api/orders', orderRoutes)
+app.use('/api/tracking', trackingRoutes)
 app.use('/api/riders', riderRoutes)
 app.use('/api/admin/auth', adminAuthRoutes)
 
-connectDB()
+async function startServer() {
+  await connectDB()
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`)
-})
+  app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`)
+  })
+}
+
+startServer()

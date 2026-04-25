@@ -36,6 +36,11 @@ const packageSchema = new mongoose.Schema(
 const deliverySchema = new mongoose.Schema(
   {
     status: { type: String, default: 'pending' },
+    deliveredMarkedAt: { type: Date, default: null },
+    deliveredMarkedBy: {
+      id: { type: String, default: '' },
+      email: { type: String, default: '' },
+    },
   },
   { _id: false }
 )
@@ -59,6 +64,11 @@ const riderSchema = new mongoose.Schema(
       name: { type: String, default: '' },
       phone: { type: String, default: '' },
       currentLocation: { type: String, default: '' },
+      location: {
+        lat: { type: Number, default: null },
+        lng: { type: Number, default: null },
+        updatedAt: { type: Date, default: null },
+      },
       deliveredAt: { type: Date, default: null },
     },
   },

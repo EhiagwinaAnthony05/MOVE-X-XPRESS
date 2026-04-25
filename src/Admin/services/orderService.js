@@ -5,8 +5,6 @@
 
 import { adminAuthFetch } from './adminAuthService'
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
-
 /**
  * Get today's date in YYYY-MM-DD format
  */
@@ -24,7 +22,7 @@ export function getTodayDateValue() {
  */
 export async function getAllOrders() {
   try {
-    const response = await fetch(`${apiBaseUrl}/api/orders`)
+    const response = await adminAuthFetch('/api/orders', { method: 'GET' })
     const data = await response.json()
 
     if (!response.ok) {
@@ -40,7 +38,7 @@ export async function getAllOrders() {
       data: data,
       error: null,
     }
-  } catch (error) {
+  } catch (_error) {
     return {
       success: false,
       data: [],
@@ -57,7 +55,7 @@ export async function getAllOrders() {
  */
 export async function getOrderSummary(period = 'daily', date) {
   try {
-    const response = await fetch(`${apiBaseUrl}/api/orders/summary?period=${period}&date=${date}`)
+    const response = await adminAuthFetch(`/api/orders/summary?period=${period}&date=${date}`, { method: 'GET' })
     const data = await response.json()
 
     if (!response.ok) {
@@ -89,7 +87,7 @@ export async function getOrderSummary(period = 'daily', date) {
       },
       error: null,
     }
-  } catch (error) {
+  } catch (_error) {
     return {
       success: false,
       summary: {
@@ -113,7 +111,7 @@ export async function getOrderById(id) {
   const normalizedId = id.trim().toUpperCase()
 
   try {
-    const response = await fetch(`${apiBaseUrl}/api/orders/${normalizedId}`)
+    const response = await adminAuthFetch(`/api/orders/${normalizedId}`, { method: 'GET' })
     const data = await response.json()
 
     if (!response.ok) {
@@ -129,7 +127,7 @@ export async function getOrderById(id) {
       data: data,
       error: null,
     }
-  } catch (error) {
+  } catch (_error) {
     return {
       success: false,
       data: null,
@@ -193,7 +191,7 @@ export async function createOrder(orderData) {
       data: data,
       error: null,
     }
-  } catch (error) {
+  } catch (_error) {
     return {
       success: false,
       data: null,
@@ -251,7 +249,7 @@ export async function updateOrderStatus(id, updateData) {
       data: data,
       error: null,
     }
-  } catch (error) {
+  } catch (_error) {
     return {
       success: false,
       data: null,
@@ -287,7 +285,7 @@ export async function deleteOrder(id) {
       message: data.message || 'Order deleted successfully.',
       error: null,
     }
-  } catch (error) {
+  } catch (_error) {
     return {
       success: false,
       message: '',

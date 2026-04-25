@@ -83,10 +83,6 @@ export default function useOrderManagementForms({ onMutationSuccess }) {
   const [riders, setRiders] = useState([])
   const [isRidersLoading, setIsRidersLoading] = useState(false)
 
-  useEffect(() => {
-    loadRiders()
-  }, [])
-
   async function loadRiders() {
     setIsRidersLoading(true)
     const result = await getRiders()
@@ -97,6 +93,31 @@ export default function useOrderManagementForms({ onMutationSuccess }) {
 
     setIsRidersLoading(false)
   }
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadInitialRiders() {
+      setIsRidersLoading(true)
+      const result = await getRiders()
+
+      if (cancelled) {
+        return
+      }
+
+      if (result.success) {
+        setRiders(result.data)
+      }
+
+      setIsRidersLoading(false)
+    }
+
+    loadInitialRiders()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   function handleCreateChange(event) {
     const { name, value } = event.target
