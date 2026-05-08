@@ -8,7 +8,7 @@ const REFRESH_TOKEN_TTL_DAYS = 7
 function getAdminCredentials() {
   return {
     email: (process.env.ADMIN_EMAIL || 'admin@movex.local').trim().toLowerCase(),
-    password: process.env.ADMIN_PASSWORD || process.env.ADMIN_API_KEY || '',
+    password: process.env.ADMIN_PASSWORD || '',
   }
 }
 
@@ -27,7 +27,7 @@ function getRefreshExpiryDate() {
 }
 
 function signAccessToken(admin) {
-  const jwtSecret = process.env.ADMIN_ACCESS_JWT_SECRET || process.env.ADMIN_API_KEY
+  const jwtSecret = process.env.ADMIN_ACCESS_JWT_SECRET
 
   if (!jwtSecret) {
     throw new Error('ADMIN_ACCESS_JWT_SECRET is required')

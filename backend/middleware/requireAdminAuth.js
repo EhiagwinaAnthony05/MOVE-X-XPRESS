@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken')
 
 function requireAdminAuth(req, res, next) {
-  const jwtSecret = process.env.ADMIN_ACCESS_JWT_SECRET || process.env.ADMIN_API_KEY
+  const jwtSecret = process.env.ADMIN_ACCESS_JWT_SECRET
 
   if (!jwtSecret) {
     return res.status(500).json({ message: 'Admin auth is not configured on the server.' })

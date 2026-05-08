@@ -7,9 +7,9 @@ const { getAllOrders, getOrderSummary, getOrderById, createOrder, updateOrderSta
 
 const router = express.Router()
 
-router.get('/', getAllOrders)
-router.get('/summary', getOrderSummary)
-router.get('/:id', getOrderById)
+router.get('/', requireAdminAuth, getAllOrders)
+router.get('/summary', requireAdminAuth, getOrderSummary)
+router.get('/:id', requireAdminAuth, getOrderById)
 router.post('/', requireAdminAuth, validateRequest(createOrderSchema), createOrder)
 router.put('/:id', requireAdminAuth, validateRequest(updateOrderSchema), updateOrderStatus)
 router.patch('/:id/rider-location', requireRiderAuth, validateRequest(riderLocationSchema), updateRiderLocation)

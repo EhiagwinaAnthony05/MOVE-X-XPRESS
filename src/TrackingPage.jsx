@@ -40,7 +40,7 @@ function TrackingPage() {
           setErrorMessage('')
         }
 
-        const response = await fetch(`${apiBaseUrl}/api/orders/${trackingId}`)
+        const response = await fetch(`${apiBaseUrl}/api/tracking/${trackingId}`)
 
         if (!response.ok) {
           if (!ignore) {

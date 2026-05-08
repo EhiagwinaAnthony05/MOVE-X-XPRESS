@@ -33,9 +33,54 @@ function RiderPage() {
       return
     }
 
+    let cancelled = false
     setIsCheckingSession(true)
-    loadRiderSession(token)
-  }, [token])
+
+    async function loadRiderSession() {
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/riders/me`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        const data = await response.json().catch(() => ({}))
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Request failed.')
+        }
+
+        if (cancelled) {
+          return
+        }
+
+        setRider(data)
+        setIsSharing(Boolean(data.isSharing))
+        setLastLocationUpdate(data.lastLocation?.updatedAt || null)
+        setStatusMessage(`Welcome ${data.name}.`)
+      } catch (error) {
+        if (cancelled) {
+          return
+        }
+
+        setStatusMessage(error.message)
+        localStorage.removeItem('riderToken')
+        setToken('')
+        setRider(null)
+      } finally {
+        if (!cancelled) {
+          setIsCheckingSession(false)
+        }
+      }
+    }
+
+    loadRiderSession()
+
+    return () => {
+      cancelled = true
+    }
+  }, [apiBaseUrl, token])
 
   async function riderFetch(path, options = {}, currentToken = token) {
     const response = await fetch(`${apiBaseUrl}${path}`, {
@@ -53,23 +98,6 @@ function RiderPage() {
     }
 
     return data
-  }
-
-  async function loadRiderSession(currentToken = token) {
-    try {
-      const riderData = await riderFetch('/api/riders/me', { method: 'GET' }, currentToken)
-      setRider(riderData)
-      setIsSharing(Boolean(riderData.isSharing))
-      setLastLocationUpdate(riderData.lastLocation?.updatedAt || null)
-      setStatusMessage(`Welcome ${riderData.name}.`)
-    } catch (error) {
-      setStatusMessage(error.message)
-      localStorage.removeItem('riderToken')
-      setToken('')
-      setRider(null)
-    } finally {
-      setIsCheckingSession(false)
-    }
   }
 
   async function handleAuth() {
@@ -188,8 +216,8 @@ function RiderPage() {
           setStatusMessage(error.message)
         }
       },
-      (error) => {
-        setStatusMessage(error.message || 'Unable to access GPS location.')
+      (positionError) => {
+        setStatusMessage(positionError.message || 'Unable to access GPS location.')
         stopSharing()
       },
       {

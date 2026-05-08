@@ -36,32 +36,32 @@ export default function useAdminOrdersDashboard() {
   const [isInitialLoading, setIsInitialLoading] = useState(true)
 
   useEffect(() => {
+    async function initializeDashboard() {
+      setIsInitialLoading(true)
+
+      const [ordersResult, summaryResult] = await Promise.all([
+        getAllOrders(),
+        getOrderSummary('daily', todayDateValue),
+      ])
+
+      if (ordersResult.success) {
+        setOrders(ordersResult.data)
+      } else {
+        setStorageMessage(ordersResult.error)
+      }
+
+      if (summaryResult.success) {
+        setSummary(summaryResult.summary)
+        setSummaryRange(summaryResult.range)
+      } else {
+        setStorageMessage(summaryResult.error)
+      }
+
+      setIsInitialLoading(false)
+    }
+
     initializeDashboard()
-  }, [])
-
-  async function initializeDashboard() {
-    setIsInitialLoading(true)
-
-    const [ordersResult, summaryResult] = await Promise.all([
-      getAllOrders(),
-      getOrderSummary('daily', todayDateValue),
-    ])
-
-    if (ordersResult.success) {
-      setOrders(ordersResult.data)
-    } else {
-      setStorageMessage(ordersResult.error)
-    }
-
-    if (summaryResult.success) {
-      setSummary(summaryResult.summary)
-      setSummaryRange(summaryResult.range)
-    } else {
-      setStorageMessage(summaryResult.error)
-    }
-
-    setIsInitialLoading(false)
-  }
+  }, [todayDateValue])
 
   async function loadOrders() {
     setStorageMessage('')

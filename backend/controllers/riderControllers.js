@@ -58,37 +58,6 @@ async function resolveLocationName(lat, lng) {
   }
 }
 
-function calculateDistanceKm(lat1, lng1, lat2, lng2) {
-  const toRadians = (value) => (value * Math.PI) / 180
-  const earthRadiusKm = 6371
-  const dLat = toRadians(lat2 - lat1)
-  const dLng = toRadians(lng2 - lng1)
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2)
-
-  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
-
-function calculateEta(orderObj, locationTimestamp = new Date()) {
-  const riderLat = orderObj?.rider?.location?.lat
-  const riderLng = orderObj?.rider?.location?.lng
-  const receiverLat = orderObj?.receiver?.location?.lat
-  const receiverLng = orderObj?.receiver?.location?.lng
-
-  if (![riderLat, riderLng, receiverLat, receiverLng].every((value) => Number.isFinite(value))) {
-    return orderObj?.rider?.estimatedDelivery || ''
-  }
-
-  const distanceKm = calculateDistanceKm(riderLat, riderLng, receiverLat, receiverLng)
-  const reportedSpeedMps = Number(orderObj?.rider?.location?.speed)
-  const speedMps = Number.isFinite(reportedSpeedMps) && reportedSpeedMps > 0 ? reportedSpeedMps : 6.94
-  const etaMinutes = Math.max(1, Math.ceil((distanceKm * 1000) / speedMps / 60))
-  const etaDate = new Date(locationTimestamp.getTime() + etaMinutes * 60 * 1000)
-
-  return `${etaDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${etaMinutes} min)`
-}
-
 async function signupRider(req, res) {
   try {
     const normalizedPhone = req.validatedBody.phone.trim()

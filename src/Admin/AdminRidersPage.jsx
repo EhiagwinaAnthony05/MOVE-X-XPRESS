@@ -23,31 +23,92 @@ function AdminRidersPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedRiderId, setSelectedRiderId] = useState('')
   const [deletingRiderId, setDeletingRiderId] = useState(null)
-  const [authForm, setAuthForm] = useState({ email: '', password: '' })
+  const [authForm, setAuthForm] = useState(() => {
+    const storedProfileRaw = localStorage.getItem('adminProfile')
+
+    if (!storedProfileRaw) {
+      return { email: '', password: '' }
+    }
+
+    try {
+      const storedProfile = JSON.parse(storedProfileRaw)
+
+      return {
+        email: storedProfile?.email || '',
+        password: '',
+      }
+    } catch (_error) {
+      return { email: '', password: '' }
+    }
+  })
   const [authMessage, setAuthMessage] = useState('')
   const [isAuthChecking, setIsAuthChecking] = useState(true)
   const [isAuthenticating, setIsAuthenticating] = useState(false)
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false)
   const [adminProfile, setAdminProfile] = useState(null)
 
-  useEffect(() => {
-    restoreSession()
-
-    const storedProfileRaw = localStorage.getItem('adminProfile')
-    if (!storedProfileRaw) {
-      return
+  async function loadRiders(showLoader = true) {
+    if (showLoader) {
+      setIsLoading(true)
     }
 
-    try {
-      const storedProfile = JSON.parse(storedProfileRaw)
-      if (storedProfile?.email) {
-        setAuthForm((current) => ({
-          ...current,
-          email: storedProfile.email,
-        }))
+    const result = await getRiders()
+    if (result.success) {
+      setRiders(result.data)
+
+      setSelectedRiderId((currentSelectedId) => {
+        if (result.data.length === 0) {
+          return ''
+        }
+
+        const selectedStillExists = result.data.some((rider) => rider.id === currentSelectedId)
+        if (selectedStillExists) {
+          return currentSelectedId
+        }
+
+        return result.data[0].id
+      })
+    } else if (showLoader) {
+      setResultMessage(result.error)
+    }
+
+    if (showLoader) {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function restoreSession() {
+      const result = await getAdminProfile()
+
+      if (cancelled) {
+        return
       }
-    } catch (_error) {
-      // Ignore invalid stored session payload.
+
+      if (!result.success) {
+        setIsAdminAuthenticated(false)
+        setAdminProfile(null)
+        setAuthMessage('Admin sign-in required.')
+        setIsAuthChecking(false)
+        return
+      }
+
+      setIsAdminAuthenticated(true)
+      setAdminProfile(result.data)
+      setAuthForm((current) => ({
+        ...current,
+        email: result.data.email,
+      }))
+      setAuthMessage('')
+      setIsAuthChecking(false)
+    }
+
+    restoreSession()
+
+    return () => {
+      cancelled = true
     }
   }, [])
 
@@ -56,36 +117,53 @@ function AdminRidersPage() {
       return
     }
 
-    loadRiders()
+    let cancelled = false
 
-    const intervalId = setInterval(() => {
-      loadRiders(false)
-    }, 5000)
+    async function loadRidersForEffect(showLoader = true) {
+      if (showLoader) {
+        setIsLoading(true)
+      }
 
-    return () => clearInterval(intervalId)
-  }, [isAdminAuthenticated])
+      const result = await getRiders()
 
-  async function restoreSession() {
-    setIsAuthChecking(true)
-    const result = await getAdminProfile()
+      if (cancelled) {
+        return
+      }
 
-    if (!result.success) {
-      setIsAdminAuthenticated(false)
-      setAdminProfile(null)
-      setAuthMessage('Admin sign-in required.')
-      setIsAuthChecking(false)
-      return
+      if (result.success) {
+        setRiders(result.data)
+        setSelectedRiderId((currentSelectedId) => {
+          if (result.data.length === 0) {
+            return ''
+          }
+
+          const selectedStillExists = result.data.some((rider) => rider.id === currentSelectedId)
+          if (selectedStillExists) {
+            return currentSelectedId
+          }
+
+          return result.data[0].id
+        })
+      } else if (showLoader) {
+        setResultMessage(result.error)
+      }
+
+      if (showLoader) {
+        setIsLoading(false)
+      }
     }
 
-    setIsAdminAuthenticated(true)
-    setAdminProfile(result.data)
-    setAuthForm((current) => ({
-      ...current,
-      email: result.data.email,
-    }))
-    setAuthMessage('')
-    setIsAuthChecking(false)
-  }
+    loadRidersForEffect()
+
+    const intervalId = setInterval(() => {
+      loadRidersForEffect(false)
+    }, 5000)
+
+    return () => {
+      cancelled = true
+      clearInterval(intervalId)
+    }
+  }, [isAdminAuthenticated])
 
   async function handleAdminLogin(event) {
     event.preventDefault()
@@ -130,35 +208,6 @@ function AdminRidersPage() {
     setAuthMessage('You have been signed out.')
   }
 
-  async function loadRiders(showLoader = true) {
-    if (showLoader) {
-      setIsLoading(true)
-    }
-
-    const result = await getRiders()
-    if (result.success) {
-      setRiders(result.data)
-
-      setSelectedRiderId((currentSelectedId) => {
-        if (result.data.length === 0) {
-          return ''
-        }
-
-        const selectedStillExists = result.data.some((rider) => rider.id === currentSelectedId)
-        if (selectedStillExists) {
-          return currentSelectedId
-        }
-
-        return result.data[0].id
-      })
-    } else if (showLoader) {
-      setResultMessage(result.error)
-    }
-
-    if (showLoader) {
-      setIsLoading(false)
-    }
-  }
 
   function handleRiderInputChange(event) {
     const { name, value } = event.target

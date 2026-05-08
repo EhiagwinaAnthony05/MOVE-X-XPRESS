@@ -14,7 +14,24 @@ function AdminPage() {
   const navigate = useNavigate()
   const [isManagerOpen, setIsManagerOpen] = useState(false)
   const [managerMode, setManagerMode] = useState('create')
-  const [authForm, setAuthForm] = useState({ email: '', password: '' })
+  const [authForm, setAuthForm] = useState(() => {
+    const storedProfileRaw = localStorage.getItem('adminProfile')
+
+    if (!storedProfileRaw) {
+      return { email: '', password: '' }
+    }
+
+    try {
+      const storedProfile = JSON.parse(storedProfileRaw)
+
+      return {
+        email: storedProfile?.email || '',
+        password: '',
+      }
+    } catch (_error) {
+      return { email: '', password: '' }
+    }
+  })
   const [authMessage, setAuthMessage] = useState('')
   const [isAuthChecking, setIsAuthChecking] = useState(true)
   const [isAuthenticating, setIsAuthenticating] = useState(false)
@@ -61,47 +78,39 @@ function AdminPage() {
   })
 
   useEffect(() => {
-    const storedProfileRaw = localStorage.getItem('adminProfile')
-    if (storedProfileRaw) {
-      try {
-        const storedProfile = JSON.parse(storedProfileRaw)
-        if (storedProfile?.email) {
-          setAuthForm((current) => ({
-            ...current,
-            email: storedProfile.email,
-          }))
-        }
-      } catch (_error) {
-        // Ignore invalid stored session payload.
+    let cancelled = false
+
+    async function restoreSession() {
+      const result = await getAdminProfile()
+
+      if (cancelled) {
+        return
       }
-    }
-  }, [])
 
-  useEffect(() => {
-    restoreSession()
-  }, [])
+      if (!result.success) {
+        setIsAdminAuthenticated(false)
+        setAdminProfile(null)
+        setAuthMessage('Admin sign-in required.')
+        setIsAuthChecking(false)
+        return
+      }
 
-  async function restoreSession() {
-    setIsAuthChecking(true)
-    const result = await getAdminProfile()
-
-    if (!result.success) {
-      setIsAdminAuthenticated(false)
-      setAdminProfile(null)
-      setAuthMessage('Admin sign-in required.')
+      setIsAdminAuthenticated(true)
+      setAdminProfile(result.data)
+      setAuthForm((current) => ({
+        ...current,
+        email: result.data.email,
+      }))
+      setAuthMessage('')
       setIsAuthChecking(false)
-      return
     }
 
-    setIsAdminAuthenticated(true)
-    setAdminProfile(result.data)
-    setAuthForm((current) => ({
-      ...current,
-      email: result.data.email,
-    }))
-    setAuthMessage('')
-    setIsAuthChecking(false)
-  }
+    restoreSession()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function handleAdminLogin(event) {
     event.preventDefault()
