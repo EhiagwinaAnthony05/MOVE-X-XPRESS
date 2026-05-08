@@ -1,4 +1,4 @@
-const crypto = require('crypto')
+const jwt = require('jsonwebtoken')
 const Rider = require('../models/Rider')
 const Order = require('../models/Orders')
 
@@ -24,8 +24,8 @@ function toPublicRiderShape(rider) {
   }
 }
 
-function createToken() {
-  return crypto.randomBytes(24).toString('hex')
+function createRiderToken(riderId) {
+  return jwt.sign({ riderId: String(riderId) }, process.env.RIDER_JWT_SECRET)
 }
 
 async function resolveLocationName(lat, lng) {
@@ -72,13 +72,12 @@ async function signupRider(req, res) {
       rider = await Rider.create({
         name: normalizedName,
         phone: normalizedPhone,
-        authToken: createToken(),
       })
     }
 
     return res.status(201).json({
       rider: toPublicRiderShape(rider),
-      token: rider.authToken,
+      token: createRiderToken(rider._id),
     })
   } catch (_error) {
     return res.status(500).json({ message: 'Server error' })
@@ -98,7 +97,7 @@ async function loginRider(req, res) {
 
     return res.json({
       rider: toPublicRiderShape(rider),
-      token: rider.authToken,
+      token: createRiderToken(rider._id),
     })
   } catch (_error) {
     return res.status(500).json({ message: 'Server error' })

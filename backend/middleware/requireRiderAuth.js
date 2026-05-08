@@ -1,3 +1,4 @@
+const jwt = require('jsonwebtoken')
 const Rider = require('../models/Rider')
 
 async function requireRiderAuth(req, res, next) {
@@ -9,10 +10,17 @@ async function requireRiderAuth(req, res, next) {
       return res.status(401).json({ message: 'Authentication required.' })
     }
 
-    const rider = await Rider.findOne({ authToken: token })
+    let payload
+    try {
+      payload = jwt.verify(token, process.env.RIDER_JWT_SECRET)
+    } catch (_err) {
+      return res.status(401).json({ message: 'Invalid rider token.' })
+    }
+
+    const rider = await Rider.findById(payload.riderId)
 
     if (!rider) {
-      return res.status(401).json({ message: 'Invalid rider token.' })
+      return res.status(401).json({ message: 'Rider not found.' })
     }
 
     req.rider = rider
