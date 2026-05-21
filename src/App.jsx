@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import './App.css'
-import Hero from './assets/hero.jpeg'
+import Hero from './assets/Hero.jpeg'
 import SearchBar from './components/SearchBar'
 import WhatsAppButton from './components/WhatsAppButton'
 import Header from './components/Header'
