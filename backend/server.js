@@ -13,15 +13,22 @@ const allowedOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(',').map(o => o.trim())
   : ['http://localhost:5173', 'http://localhost:5174']
 
-app.use(cors({
+function isAllowedOrigin(origin) {
+  return allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')
+}
+
+const corsOptions = {
   origin: (origin, callback) => {
     // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
     if (!origin) return callback(null, true)
-    if (allowedOrigins.includes(origin)) return callback(null, true)
+    if (isAllowedOrigin(origin)) return callback(null, true)
     callback(new Error(`CORS: origin ${origin} not allowed`))
   },
   credentials: true,
-}))
+}
+
+app.use(cors(corsOptions))
+app.options('*', cors(corsOptions))
 app.use(express.json())
 const PORT = process.env.PORT || 3001
 
