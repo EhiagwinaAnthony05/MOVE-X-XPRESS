@@ -40,12 +40,7 @@ app.use('/api/tracking', trackingRoutes)
 app.use('/api/riders', riderRoutes)
 app.use('/api/admin/auth', adminAuthRoutes)
 
-async function startServer() {
-  await connectDB()
-
-  app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`)
-  })
-}
-
-startServer()
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`)
+  connectDB()
+})
