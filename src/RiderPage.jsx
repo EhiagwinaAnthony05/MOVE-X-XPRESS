@@ -5,10 +5,18 @@ import './RiderPage.css'
 const SEND_INTERVAL_MS = 5000
 
 function RiderPage() {
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+  const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+  const apiBaseUrl = rawApiBaseUrl.replace(/\/+$/, '')
 
   const watchIdRef = useRef(null)
   const lastSentRef = useRef(0)
+
+  function clearLocationWatch() {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current)
+      watchIdRef.current = null
+    }
+  }
 
   const [authForm, setAuthForm] = useState({ name: '', phone: '' })
   const [token, setToken] = useState(() => localStorage.getItem('riderToken') || '')
@@ -16,14 +24,35 @@ function RiderPage() {
   const [isCheckingSession, setIsCheckingSession] = useState(() => Boolean(localStorage.getItem('riderToken')))
   const [isSubmittingAuth, setIsSubmittingAuth] = useState(false)
   const [isSharing, setIsSharing] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [statusMessage, setStatusMessage] = useState('Login with your rider name and phone number provided by admin.')
   const [lastLocationUpdate, setLastLocationUpdate] = useState(null)
 
+  async function loadRiderSession(currentToken = token) {
+    const response = await fetch(`${apiBaseUrl}/api/riders/me`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${currentToken}`,
+      },
+    })
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Request failed.')
+    }
+
+    setRider(data)
+    setIsSharing(Boolean(data.isSharing))
+    setLastLocationUpdate(data.lastLocation?.updatedAt || null)
+    setStatusMessage(`Welcome ${data.name}.`)
+
+    return data
+  }
+
   useEffect(() => {
     return () => {
-      if (watchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(watchIdRef.current)
-      }
+      clearLocationWatch()
     }
   }, [])
 
@@ -36,29 +65,13 @@ function RiderPage() {
     let cancelled = false
     setIsCheckingSession(true)
 
-    async function loadRiderSession() {
+    async function restoreRiderSession() {
       try {
-        const response = await fetch(`${apiBaseUrl}/api/riders/me`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        const data = await response.json().catch(() => ({}))
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Request failed.')
-        }
+        await loadRiderSession(token)
 
         if (cancelled) {
           return
         }
-
-        setRider(data)
-        setIsSharing(Boolean(data.isSharing))
-        setLastLocationUpdate(data.lastLocation?.updatedAt || null)
-        setStatusMessage(`Welcome ${data.name}.`)
       } catch (error) {
         if (cancelled) {
           return
@@ -75,7 +88,7 @@ function RiderPage() {
       }
     }
 
-    loadRiderSession()
+    restoreRiderSession()
 
     return () => {
       cancelled = true
@@ -163,10 +176,7 @@ function RiderPage() {
   }
 
   async function stopSharing() {
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current)
-      watchIdRef.current = null
-    }
+    clearLocationWatch()
 
     try {
       await riderFetch('/api/riders/me/sharing', {
@@ -182,10 +192,7 @@ function RiderPage() {
   }
 
   function handleLogout() {
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current)
-      watchIdRef.current = null
-    }
+    clearLocationWatch()
 
     localStorage.removeItem('riderToken')
     setToken('')
@@ -205,6 +212,7 @@ function RiderPage() {
       return
     }
 
+    clearLocationWatch()
     setStatusMessage('Requesting location permission...')
 
     watchIdRef.current = navigator.geolocation.watchPosition(
@@ -218,7 +226,6 @@ function RiderPage() {
       },
       (positionError) => {
         setStatusMessage(positionError.message || 'Unable to access GPS location.')
-        stopSharing()
       },
       {
         enableHighAccuracy: true,
@@ -226,6 +233,24 @@ function RiderPage() {
         timeout: 10000,
       }
     )
+  }
+
+  async function handleRefresh() {
+    if (!token) {
+      setStatusMessage('Login before refreshing your rider status.')
+      return
+    }
+
+    setIsRefreshing(true)
+
+    try {
+      await loadRiderSession(token)
+      setStatusMessage('Rider status refreshed.')
+    } catch (error) {
+      setStatusMessage(error.message)
+    } finally {
+      setIsRefreshing(false)
+    }
   }
 
   return (
@@ -290,6 +315,9 @@ function RiderPage() {
                 </button>
                 <button type='button' className='rider-btn secondary' onClick={stopSharing} disabled={!isSharing}>
                   Stop Sharing
+                </button>
+                <button type='button' className='rider-btn secondary' onClick={handleRefresh} disabled={isRefreshing}>
+                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
                 </button>
                 <button type='button' className='rider-btn secondary' onClick={handleLogout}>
                   Logout

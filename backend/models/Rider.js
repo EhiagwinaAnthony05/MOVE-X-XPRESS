@@ -4,6 +4,7 @@ const riderSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     phone: { type: String, required: true, trim: true, unique: true },
+    authToken: { type: String, trim: true },
     isSharing: { type: Boolean, default: false },
     lastLocation: {
       lat: { type: Number, default: null },
@@ -17,5 +18,7 @@ const riderSchema = new mongoose.Schema(
   },
   { timestamps: true }
 )
+
+riderSchema.index({ authToken: 1 }, { unique: true, sparse: true })
 
 module.exports = mongoose.model('Rider', riderSchema)

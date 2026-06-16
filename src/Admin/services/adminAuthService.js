@@ -1,4 +1,5 @@
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+const apiBaseUrl = rawApiBaseUrl.replace(/\/+$/, '')
 
 const ACCESS_TOKEN_KEY = 'adminAccessToken'
 const REFRESH_TOKEN_KEY = 'adminRefreshToken'

@@ -28,6 +28,16 @@ function createRiderToken(riderId) {
   return jwt.sign({ riderId: String(riderId) }, process.env.RIDER_JWT_SECRET)
 }
 
+async function ensureRiderAuthToken(rider) {
+  if (rider.authToken) {
+    return rider.authToken
+  }
+
+  rider.authToken = createRiderToken(rider._id)
+  await rider.save()
+  return rider.authToken
+}
+
 async function resolveLocationName(lat, lng) {
   const fallback = `${lat.toFixed(6)}, ${lng.toFixed(6)}`
   const controller = new AbortController()
@@ -69,15 +79,19 @@ async function signupRider(req, res) {
       rider.name = normalizedName
       await rider.save()
     } else {
-      rider = await Rider.create({
+      rider = new Rider({
         name: normalizedName,
         phone: normalizedPhone,
       })
+      rider.authToken = createRiderToken(rider._id)
+      await rider.save()
     }
+
+    const authToken = await ensureRiderAuthToken(rider)
 
     return res.status(201).json({
       rider: toPublicRiderShape(rider),
-      token: createRiderToken(rider._id),
+      token: authToken,
     })
   } catch (_error) {
     return res.status(500).json({ message: 'Server error' })
@@ -95,9 +109,11 @@ async function loginRider(req, res) {
       return res.status(401).json({ message: 'Invalid rider name or phone.' })
     }
 
+    const authToken = await ensureRiderAuthToken(rider)
+
     return res.json({
       rider: toPublicRiderShape(rider),
-      token: createRiderToken(rider._id),
+      token: authToken,
     })
   } catch (_error) {
     return res.status(500).json({ message: 'Server error' })
