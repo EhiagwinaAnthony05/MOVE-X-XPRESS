@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Header from './components/Header'
 import './RiderPage.css'
 
@@ -28,7 +28,7 @@ function RiderPage() {
   const [statusMessage, setStatusMessage] = useState('Login with your rider name and phone number provided by admin.')
   const [lastLocationUpdate, setLastLocationUpdate] = useState(null)
 
-  async function loadRiderSession(currentToken = token) {
+  const loadRiderSession = useCallback(async (currentToken = token) => {
     const response = await fetch(`${apiBaseUrl}/api/riders/me`, {
       method: 'GET',
       headers: {
@@ -48,7 +48,7 @@ function RiderPage() {
     setStatusMessage(`Welcome ${data.name}.`)
 
     return data
-  }
+  }, [apiBaseUrl, token])
 
   useEffect(() => {
     return () => {
@@ -93,7 +93,7 @@ function RiderPage() {
     return () => {
       cancelled = true
     }
-  }, [apiBaseUrl, token])
+  }, [loadRiderSession, token])
 
   async function riderFetch(path, options = {}, currentToken = token) {
     const response = await fetch(`${apiBaseUrl}${path}`, {

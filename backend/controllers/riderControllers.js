@@ -24,8 +24,18 @@ function toPublicRiderShape(rider) {
   }
 }
 
+function getRiderJwtSecret() {
+  const secret = process.env.RIDER_JWT_SECRET
+
+  if (!secret) {
+    throw new Error('RIDER_JWT_SECRET is required')
+  }
+
+  return secret
+}
+
 function createRiderToken(riderId) {
-  return jwt.sign({ riderId: String(riderId) }, process.env.RIDER_JWT_SECRET)
+  return jwt.sign({ riderId: String(riderId) }, getRiderJwtSecret())
 }
 
 async function ensureRiderAuthToken(rider) {
@@ -93,7 +103,11 @@ async function signupRider(req, res) {
       rider: toPublicRiderShape(rider),
       token: authToken,
     })
-  } catch (_error) {
+  } catch (error) {
+    if (error.message === 'RIDER_JWT_SECRET is required') {
+      return res.status(500).json({ message: 'Rider auth is not configured on the server.' })
+    }
+
     return res.status(500).json({ message: 'Server error' })
   }
 }
@@ -115,7 +129,11 @@ async function loginRider(req, res) {
       rider: toPublicRiderShape(rider),
       token: authToken,
     })
-  } catch (_error) {
+  } catch (error) {
+    if (error.message === 'RIDER_JWT_SECRET is required') {
+      return res.status(500).json({ message: 'Rider auth is not configured on the server.' })
+    }
+
     return res.status(500).json({ message: 'Server error' })
   }
 }

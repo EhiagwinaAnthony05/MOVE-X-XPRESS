@@ -6,7 +6,7 @@ from reportlab.lib.units import cm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen import canvas
 
-ROOT = Path('/Users/apple/move-x')
+ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / 'docs' / 'move-x-project-manual.pdf'
 
 INCLUDE_EXTENSIONS = {'.html', '.css', '.js', '.jsx', '.md', '.json'}

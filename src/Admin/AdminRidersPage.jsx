@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Map from '../components/Map'
 import AdminSectionTabs from './components/AdminSectionTabs'
@@ -14,8 +13,6 @@ import './AdminPage.css'
 import './AdminRidersPage.css'
 
 function AdminRidersPage() {
-  const navigate = useNavigate()
-
   const [riders, setRiders] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [riderForm, setRiderForm] = useState({ name: '', phone: '' })

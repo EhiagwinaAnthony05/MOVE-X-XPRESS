@@ -56,7 +56,7 @@ function AdminPage() {
     handleSummaryDateChange,
     handlePreviewSubmit,
     handleDeleteOrder,
-  } = useAdminOrdersDashboard()
+  } = useAdminOrdersDashboard({ enabled: isAdminAuthenticated })
 
   const {
     createForm,
@@ -74,6 +74,7 @@ function AdminPage() {
     riders,
     isRidersLoading,
   } = useOrderManagementForms({
+    enabled: isAdminAuthenticated,
     onMutationSuccess: refreshDashboardData,
   })
 
