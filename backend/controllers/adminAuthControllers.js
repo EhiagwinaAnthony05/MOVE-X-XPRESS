@@ -47,6 +47,7 @@ function signAccessToken(admin) {
 }
 
 async function issueSessionTokens(admin) {
+  const accessToken = signAccessToken(admin)
   const refreshToken = createRefreshToken()
   const tokenHash = hashToken(refreshToken)
 
@@ -57,8 +58,6 @@ async function issueSessionTokens(admin) {
     role: 'admin',
     expiresAt: getRefreshExpiryDate(),
   })
-
-  const accessToken = signAccessToken(admin)
 
   return {
     accessToken,
@@ -99,7 +98,14 @@ async function loginAdmin(req, res) {
       refreshToken,
       admin,
     })
-  } catch (_error) {
+  } catch (error) {
+    const message = error?.message || 'Server error'
+
+    if (message.includes('ADMIN_ACCESS_JWT_SECRET')) {
+      return res.status(500).json({ message: 'Admin auth is misconfigured. Set ADMIN_ACCESS_JWT_SECRET on the server.' })
+    }
+
+    console.error('loginAdmin error:', error)
     return res.status(500).json({ message: 'Server error' })
   }
 }
@@ -130,7 +136,12 @@ async function refreshAdminSession(req, res) {
       ...tokens,
       admin,
     })
-  } catch (_error) {
+  } catch (error) {
+    if (error?.message?.includes('ADMIN_ACCESS_JWT_SECRET')) {
+      return res.status(500).json({ message: 'Admin auth is misconfigured. Set ADMIN_ACCESS_JWT_SECRET on the server.' })
+    }
+
+    console.error('refreshAdminSession error:', error)
     return res.status(500).json({ message: 'Server error' })
   }
 }
@@ -147,7 +158,8 @@ async function logoutAdmin(req, res) {
     }
 
     return res.json({ message: 'Logged out successfully.' })
-  } catch (_error) {
+  } catch (error) {
+    console.error('logoutAdmin error:', error)
     return res.status(500).json({ message: 'Server error' })
   }
 }
