@@ -1,5 +1,6 @@
 const crypto = require('crypto')
 const jwt = require('jsonwebtoken')
+const mongoose = require('mongoose')
 const AdminRefreshToken = require('../models/AdminRefreshToken')
 
 const ACCESS_TOKEN_EXPIRES_IN = '15m'
@@ -75,8 +76,16 @@ function getAdminIdentity() {
   }
 }
 
+function isDatabaseConnected() {
+  return mongoose.connection.readyState === 1
+}
+
 async function loginAdmin(req, res) {
   try {
+    if (!isDatabaseConnected()) {
+      return res.status(503).json({ message: 'Database is temporarily unavailable. Please try again shortly.' })
+    }
+
     const { email, password } = req.validatedBody
     const normalizedEmail = email.trim().toLowerCase()
     const credentials = getAdminCredentials()
@@ -112,6 +121,10 @@ async function loginAdmin(req, res) {
 
 async function refreshAdminSession(req, res) {
   try {
+    if (!isDatabaseConnected()) {
+      return res.status(503).json({ message: 'Database is temporarily unavailable. Please try again shortly.' })
+    }
+
     const { refreshToken } = req.validatedBody
     const tokenHash = hashToken(refreshToken)
 
@@ -148,6 +161,10 @@ async function refreshAdminSession(req, res) {
 
 async function logoutAdmin(req, res) {
   try {
+    if (!isDatabaseConnected()) {
+      return res.status(503).json({ message: 'Database is temporarily unavailable. Please try again shortly.' })
+    }
+
     const { refreshToken } = req.validatedBody
     const tokenHash = hashToken(refreshToken)
 
