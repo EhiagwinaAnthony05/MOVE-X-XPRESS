@@ -11,7 +11,8 @@ import { isTrackingIdFormatValid, normalizeTrackingId } from './data/trackingDat
 function TrackingPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+  const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+  const apiBaseUrl = rawApiBaseUrl.replace(/\/+$/, '')
 
   const trackingId = normalizeTrackingId(id)
   const [shipment, setShipment] = useState(null)

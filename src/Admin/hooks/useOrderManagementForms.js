@@ -73,7 +73,7 @@ function updateNestedValue(current, path, value) {
   return next
 }
 
-export default function useOrderManagementForms({ onMutationSuccess }) {
+export default function useOrderManagementForms({ onMutationSuccess, enabled = false }) {
   const [createForm, setCreateForm] = useState(INITIAL_CREATE_FORM)
   const [updateForm, setUpdateForm] = useState(INITIAL_UPDATE_FORM)
   const [createResult, setCreateResult] = useState('')
@@ -95,6 +95,10 @@ export default function useOrderManagementForms({ onMutationSuccess }) {
   }
 
   useEffect(() => {
+    if (!enabled) {
+      return
+    }
+
     let cancelled = false
 
     async function loadInitialRiders() {
@@ -117,7 +121,7 @@ export default function useOrderManagementForms({ onMutationSuccess }) {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [enabled])
 
   function handleCreateChange(event) {
     const { name, value } = event.target

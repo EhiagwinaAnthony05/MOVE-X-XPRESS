@@ -3,6 +3,10 @@ const Rider = require('../models/Rider')
 
 async function requireRiderAuth(req, res, next) {
   try {
+    if (!process.env.RIDER_JWT_SECRET) {
+      return res.status(500).json({ message: 'Rider auth is not configured on the server.' })
+    }
+
     const header = req.headers.authorization || ''
     const [scheme, token] = header.split(' ')
 

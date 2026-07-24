@@ -24,8 +24,28 @@ function toPublicRiderShape(rider) {
   }
 }
 
+function getRiderJwtSecret() {
+  const secret = process.env.RIDER_JWT_SECRET
+
+  if (!secret) {
+    throw new Error('RIDER_JWT_SECRET is required')
+  }
+
+  return secret
+}
+
 function createRiderToken(riderId) {
-  return jwt.sign({ riderId: String(riderId) }, process.env.RIDER_JWT_SECRET)
+  return jwt.sign({ riderId: String(riderId) }, getRiderJwtSecret())
+}
+
+async function ensureRiderAuthToken(rider) {
+  if (rider.authToken) {
+    return rider.authToken
+  }
+
+  rider.authToken = createRiderToken(rider._id)
+  await rider.save()
+  return rider.authToken
 }
 
 async function resolveLocationName(lat, lng) {
@@ -69,17 +89,25 @@ async function signupRider(req, res) {
       rider.name = normalizedName
       await rider.save()
     } else {
-      rider = await Rider.create({
+      rider = new Rider({
         name: normalizedName,
         phone: normalizedPhone,
       })
+      rider.authToken = createRiderToken(rider._id)
+      await rider.save()
     }
+
+    const authToken = await ensureRiderAuthToken(rider)
 
     return res.status(201).json({
       rider: toPublicRiderShape(rider),
-      token: createRiderToken(rider._id),
+      token: authToken,
     })
-  } catch (_error) {
+  } catch (error) {
+    if (error.message === 'RIDER_JWT_SECRET is required') {
+      return res.status(500).json({ message: 'Rider auth is not configured on the server.' })
+    }
+
     return res.status(500).json({ message: 'Server error' })
   }
 }
@@ -95,11 +123,17 @@ async function loginRider(req, res) {
       return res.status(401).json({ message: 'Invalid rider name or phone.' })
     }
 
+    const authToken = await ensureRiderAuthToken(rider)
+
     return res.json({
       rider: toPublicRiderShape(rider),
-      token: createRiderToken(rider._id),
+      token: authToken,
     })
-  } catch (_error) {
+  } catch (error) {
+    if (error.message === 'RIDER_JWT_SECRET is required') {
+      return res.status(500).json({ message: 'Rider auth is not configured on the server.' })
+    }
+
     return res.status(500).json({ message: 'Server error' })
   }
 }

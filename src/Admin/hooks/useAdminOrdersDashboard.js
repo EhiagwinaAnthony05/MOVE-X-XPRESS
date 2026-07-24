@@ -20,7 +20,7 @@ const INITIAL_SUMMARY_RANGE = {
   end: null,
 }
 
-export default function useAdminOrdersDashboard() {
+export default function useAdminOrdersDashboard({ enabled = false } = {}) {
   const todayDateValue = getTodayDateValue()
 
   const [previewId, setPreviewId] = useState('')
@@ -36,6 +36,10 @@ export default function useAdminOrdersDashboard() {
   const [isInitialLoading, setIsInitialLoading] = useState(true)
 
   useEffect(() => {
+    if (!enabled) {
+      return
+    }
+
     async function initializeDashboard() {
       setIsInitialLoading(true)
 
@@ -61,7 +65,7 @@ export default function useAdminOrdersDashboard() {
     }
 
     initializeDashboard()
-  }, [todayDateValue])
+  }, [enabled, todayDateValue])
 
   async function loadOrders() {
     setStorageMessage('')

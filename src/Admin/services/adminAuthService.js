@@ -1,15 +1,16 @@
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+const apiBaseUrl = rawApiBaseUrl.replace(/\/+$/, '')
 
 const ACCESS_TOKEN_KEY = 'adminAccessToken'
 const REFRESH_TOKEN_KEY = 'adminRefreshToken'
 const ADMIN_PROFILE_KEY = 'adminProfile'
 
 export function getAdminAccessToken() {
-  return localStorage.getItem(ACCESS_TOKEN_KEY) || ''
+  return (localStorage.getItem(ACCESS_TOKEN_KEY) || '').trim()
 }
 
 export function getAdminRefreshToken() {
-  return localStorage.getItem(REFRESH_TOKEN_KEY) || ''
+  return (localStorage.getItem(REFRESH_TOKEN_KEY) || '').trim()
 }
 
 export function getStoredAdminProfile() {
@@ -112,6 +113,10 @@ export async function getAdminProfile() {
     const data = await parseJsonSafe(response)
 
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        clearAdminSession()
+      }
+
       return { success: false, error: data.message || 'Admin authentication required.', data: null }
     }
 
@@ -123,14 +128,28 @@ export async function getAdminProfile() {
 }
 
 export async function adminAuthFetch(path, options = {}, hasRetried = false) {
-  const accessToken = getAdminAccessToken()
+  const refreshToken = getAdminRefreshToken()
+  let accessToken = getAdminAccessToken()
+
+  // If access token is missing but refresh token exists, refresh first so the
+  // first protected request is sent with Authorization instead of guaranteed 401.
+  if (!accessToken && refreshToken && !hasRetried) {
+    const refreshResult = await refreshAdminSession()
+
+    if (refreshResult.success) {
+      accessToken = getAdminAccessToken()
+    }
+  }
+
+  const requestHeaders = {
+    ...(options.headers || {}),
+    ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  }
+
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...options,
-    headers: {
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      ...(options.headers || {}),
-    },
+    headers: requestHeaders,
   })
 
   if (response.status === 401 && !hasRetried) {

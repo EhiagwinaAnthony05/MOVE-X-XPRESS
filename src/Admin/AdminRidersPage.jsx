@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Map from '../components/Map'
 import AdminSectionTabs from './components/AdminSectionTabs'
@@ -14,13 +13,12 @@ import './AdminPage.css'
 import './AdminRidersPage.css'
 
 function AdminRidersPage() {
-  const navigate = useNavigate()
-
   const [riders, setRiders] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [riderForm, setRiderForm] = useState({ name: '', phone: '' })
   const [resultMessage, setResultMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [selectedRiderId, setSelectedRiderId] = useState('')
   const [deletingRiderId, setDeletingRiderId] = useState(null)
   const [authForm, setAuthForm] = useState(() => {
@@ -74,6 +72,18 @@ function AdminRidersPage() {
 
     if (showLoader) {
       setIsLoading(false)
+    }
+  }
+
+  async function handleRefreshRiders() {
+    setIsRefreshing(true)
+    setResultMessage('Refreshing rider list...')
+
+    try {
+      await loadRiders(false)
+      setResultMessage('Rider list refreshed.')
+    } finally {
+      setIsRefreshing(false)
     }
   }
 
@@ -301,9 +311,9 @@ function AdminRidersPage() {
           <h2>Admin Rider Page</h2>
           <div className='admin-title-actions'>
             <span className='admin-auth-pill'>Signed in as {adminProfile?.email || 'admin'}</span>
-            <button type='button' className='admin-back-btn' onClick={() => navigate('/admin')}>
+            {/* <button type='button' className='admin-back-btn' onClick={() => navigate('/admin')}>
               Back to Customer Page
-            </button>
+            </button> */}
             <button type='button' className='admin-back-btn' onClick={handleAdminLogout}>
               Logout
             </button>
@@ -317,9 +327,11 @@ function AdminRidersPage() {
             <RiderManagementPanel
               riders={riders}
               isLoading={isLoading}
+              isRefreshing={isRefreshing}
               form={riderForm}
               onChange={handleRiderInputChange}
               onSubmit={handleRiderSubmit}
+              onRefresh={handleRefreshRiders}
               onDelete={handleDeleteRider}
               deletingRiderId={deletingRiderId}
               isSubmitting={isSubmitting}

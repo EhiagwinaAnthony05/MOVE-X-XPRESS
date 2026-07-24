@@ -14,7 +14,8 @@ const allowedOrigins = process.env.FRONTEND_URL
   : ['http://localhost:5173', 'http://localhost:5174']
 
 function isAllowedOrigin(origin) {
-  return allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')
+  const isLocalDevOrigin = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+  return allowedOrigins.includes(origin) || origin.endsWith('.vercel.app') || isLocalDevOrigin
 }
 
 const corsOptions = {
@@ -40,12 +41,7 @@ app.use('/api/tracking', trackingRoutes)
 app.use('/api/riders', riderRoutes)
 app.use('/api/admin/auth', adminAuthRoutes)
 
-async function startServer() {
-  await connectDB()
-
-  app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`)
-  })
-}
-
-startServer()
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`)
+  connectDB()
+})
